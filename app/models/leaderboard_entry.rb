@@ -7,6 +7,10 @@ class LeaderboardEntry < DomainModel
   validates_presence_of :leaderboard_board_time_id
   validates_presence_of :leaderboard_user_id
 
+  def self.best_first
+    self.order('points DESC, updated_at DESC')
+  end
+
   def self.get_entries(board, user, time=nil)
     LeaderboardBoardTime.leaderboard_type_options.collect do |leaderboard_type, display|
       self.push_entry board, user, leaderboard_type, time
@@ -57,6 +61,7 @@ class LeaderboardEntry < DomainModel
   end
 
   def place(limit=1000)
-    @place ||= self.board_scope.where('points >= ? && leaderboard_user_id != ?', self.points, self.leaderboard_user_id).order('points DESC, updated_at DESC').limit(limit).count + 1
+    # count the number of users who did better than me
+    @place ||= self.board_scope.where('points >= ? && leaderboard_user_id != ?', self.points, self.leaderboard_user_id).best_first.limit(limit).count + 1
   end
 end
