@@ -107,4 +107,42 @@ describe LeaderboardEntry do
       end
     end
   end
+  
+  describe "Users" do
+    before(:each) do
+      @board = LeaderboardBoard.create :name => 'Test'
+      (1..10).each do |idx|
+        user = LeaderboardUser.create :name => "user #{idx}"
+        LeaderboardEntry.update_entries @board, user, 10 * idx
+      end
+    end
+    
+    it "should be able to determine the users place" do
+      @user = LeaderboardUser.create :name => "Test User"
+      
+      LeaderboardEntry.update_entries @board, @user, 5
+      LeaderboardEntry.get_entries(@board, @user).each do |entry|
+        entry.place.should == case entry.leaderboard_type
+                              when 'alltime', 'yearly', 'monthly', 'weekly', 'daily'
+                                 11
+                              end
+      end
+
+      LeaderboardEntry.update_entries @board, @user, 50
+      LeaderboardEntry.get_entries(@board, @user).each do |entry|
+        entry.place.should == case entry.leaderboard_type
+                              when 'alltime', 'yearly', 'monthly', 'weekly', 'daily'
+                                 6
+                              end
+      end
+
+      LeaderboardEntry.update_entries @board, @user, 50
+      LeaderboardEntry.get_entries(@board, @user).each do |entry|
+        entry.place.should == case entry.leaderboard_type
+                              when 'alltime', 'yearly', 'monthly', 'weekly', 'daily'
+                                 1
+                              end
+      end
+    end
+  end
 end

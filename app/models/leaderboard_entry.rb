@@ -56,7 +56,7 @@ class LeaderboardEntry < DomainModel
     self.leaderboard_board_time.leaderboard_board if self.leaderboard_board_time
   end
 
-  def place(limit=1001)
-    @place ||= self.board_scope.where('points >= ? && leaderboard_user_id != ?', self.points, self.leaderboard_user_id).order('points DESC, updated_at DESC').limit(limit).count
+  def place(limit=1000)
+    @place ||= self.board_scope.where('points >= ? && leaderboard_user_id != ?', self.points, self.leaderboard_user_id).order('points DESC, updated_at DESC').limit(limit).count + 1
   end
 end
