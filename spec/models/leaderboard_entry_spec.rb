@@ -4,9 +4,8 @@ require File.expand_path(File.dirname(__FILE__) + '/../leaderboard_spec_helper')
 describe LeaderboardEntry do
   it "should require a name" do
     @entry = LeaderboardEntry.new
-    @entry.should have(1).error_on(:leaderboard_board_id)
+    @entry.should have(1).error_on(:leaderboard_board_time_id)
     @entry.should have(1).error_on(:leaderboard_user_id)
-    @entry.should have(1).error_on(:leaderboard_type)
   end
   
   describe "Board & User" do
@@ -15,18 +14,24 @@ describe LeaderboardEntry do
       @user = LeaderboardUser.create :name => 'AAA'
     end
 
-    it "should be able to create a entry" do
+    it "should be able to create an entry" do
+      expect {
+        @entry = LeaderboardEntry.push_entry @board, @user, 'daily'
+      }.to change{ LeaderboardEntry.count }.by(1)
+    end
+
+    it "should be able to create an entry" do
       expect {
         LeaderboardEntry.update_entries @board, @user, 50
       }.to change{ LeaderboardEntry.count }.by(5)
     end
 
-    it "should be able to create a entry" do
-      time = LeaderboardEntry.calculate_start_time 'weekly'
+    it "should be able to create an entry" do
+      time = LeaderboardBoardTime.calculate_start_time 'weekly'
       expect {
         LeaderboardEntry.update_entries @board, @user, 50, time
       }.to change{ LeaderboardEntry.count }.by(5)
-      
+
       LeaderboardEntry.get_entries(@board, @user, time).each do |entry|
         entry.points.should == case entry.leaderboard_type
                                when 'alltime', 'yearly', 'monthly', 'weekly', 'daily'

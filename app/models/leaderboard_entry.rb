@@ -1,54 +1,26 @@
 class LeaderboardEntry < DomainModel
-  belongs_to :leaderboard_board
+  attr_accessor :place
+
+  belongs_to :leaderboard_board_time
   belongs_to :leaderboard_user
 
-  validates_presence_of :leaderboard_board_id
+  validates_presence_of :leaderboard_board_time_id
   validates_presence_of :leaderboard_user_id
 
-  has_options :leaderboard_type, [['All-time', 'alltime'], ['Yearly', 'yearly'], ['Monthly', 'monthly'], ['Weekly', 'weekly'], ['Daily', 'daily']], :validate => true
-  
-  def self.by_board(board); self.where(:leaderboard_board_id => board.id); end
-  def self.by_user(user); self.where(:leaderboard_user_id => user.id); end
-  def self.for_time(time); self.where(:started_at => time); end
-  def self.by_type(type, time=nil)
-    conditions = {:leaderboard_type => type}
-    conditions[:started_at] = self.calculate_start_time(type, time) if time
-    self.where conditions
-  end
-
-  def self.current_time
-    Time.now
-  end
-
-  def self.calculate_start_time(leaderboard_type, time=nil)
-    time ||= self.current_time
-
-    case leaderboard_type
-    when 'alltime'
-      nil
-    when 'yearly'
-      time.at_beginning_of_year
-    when 'monthly'
-      time.at_beginning_of_month
-    when 'weekly'
-      time.at_beginning_of_week
-    when 'daily'
-      time.at_beginning_of_day
-    end
-  end
-
   def self.get_entries(board, user, time=nil)
-    time ||= self.current_time
-    self.leaderboard_type_options.collect do |leaderboard_type, display|
+    LeaderboardBoardTime.leaderboard_type_options.collect do |leaderboard_type, display|
       self.push_entry board, user, leaderboard_type, time
     end
   end
 
   def self.get_entry_ids(board, user, time=nil)
+    return self.get_entries(board, user, time).collect(&:id) if time
+
+    time = Time.now
+
     entries = DataCache.get_remote 'LeaderboardBoard', board.id.to_s, user.id.to_s
     return entries if entries
 
-    time ||= self.current_time
     entries = self.get_entries(board, user, time).collect(&:id)
     
     expires = (time + 1.day).at_beginning_of_day.to_i - time.to_i
@@ -63,8 +35,28 @@ class LeaderboardEntry < DomainModel
   end
   
   def self.push_entry(board, user, leaderboard_type, time=nil)
-    starts = self.calculate_start_time(leaderboard_type, time)
-    entry = self.by_board(board).by_user(user).by_type(leaderboard_type).for_time(starts).first
-    entry ||= board.leaderboard_entries.create(:leaderboard_user_id => user.id, :leaderboard_type => leaderboard_type, :started_at => starts)
+    board_time = LeaderboardBoardTime.push_board_time board, leaderboard_type, time
+    entry = LeaderboardEntry.where(:leaderboard_board_time_id => board_time.id, :leaderboard_user_id => user.id).first
+    entry ||= LeaderboardEntry.create(:leaderboard_board_time_id => board_time.id, :leaderboard_user_id => user.id)
+  end
+  
+  def board_scope
+    LeaderboardEntry.where(:leaderboard_board_time_id => self.leaderboard_board_time_id)
+  end
+  
+  def leaderboard_type
+    self.leaderboard_board_time.leaderboard_type if self.leaderboard_board_time
+  end
+
+  def started_at
+    self.leaderboard_board_time.started_at if self.leaderboard_board_time
+  end
+
+  def leaderboard_board
+    self.leaderboard_board_time.leaderboard_board if self.leaderboard_board_time
+  end
+
+  def place(limit=1001)
+    @place ||= self.board_scope.where('points >= ? && leaderboard_user_id != ?', self.points, self.leaderboard_user_id).order('points DESC, updated_at DESC').limit(limit).count
   end
 end
