@@ -1,5 +1,6 @@
 class LeaderboardBoard < DomainModel
-  has_many :leaderboard_entries
-  
+  belongs_to :content, :polymorphic => true
+  has_many :leaderboard_board_times, :dependent => :destroy
+
   validates_presence_of :name
 end

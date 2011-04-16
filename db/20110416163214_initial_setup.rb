@@ -2,6 +2,9 @@ class InitialSetup < ActiveRecord::Migration
   def self.up
     create_table :leaderboard_boards, :force => true do |t|
       t.string :name
+      t.string :permalink
+      t.string :content_type
+      t.integer :content_id
     end
 
     # separate users table, just incase anonymous users can get on the leader board

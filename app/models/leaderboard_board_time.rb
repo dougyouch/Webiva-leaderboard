@@ -1,6 +1,6 @@
 class LeaderboardBoardTime < DomainModel
   belongs_to :leaderboard_board
-  has_many :leaderboard_entries
+  has_many :leaderboard_entries, :dependent => :delete_all
 
   validates_presence_of :leaderboard_board_id
 

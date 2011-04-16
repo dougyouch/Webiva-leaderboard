@@ -1,6 +1,6 @@
 class LeaderboardUser < DomainModel
   has_end_user :end_user_id
-  has_many :leaderboard_entries
+  has_many :leaderboard_entries, :dependent => :delete_all
   
   before_validation :set_name
   
